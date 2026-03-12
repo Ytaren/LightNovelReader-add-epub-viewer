@@ -12,6 +12,12 @@
     <img src="assets/header.png" alt="drawing" width="80%"/>
 </div>
 
+## Fork Notice
+
+- This repository is forked from [dmzz-yyhyy/LightNovelReader](https://github.com/dmzz-yyhyy/LightNovelReader).
+- This fork adds EPUB import and local EPUB reading support.
+- These changes are currently maintained in this fork and are not submitted as an upstream PR.
+
 ## 介绍
 
 LightNovelReader <sup>*重构版*</sup> 是一款开源的轻小说阅读软件，使用 Kotlin 和 Jetpack Compose 编写，具有轻量化的体积和流畅的阅读体验。此外，还有多种有用的功能，如 EPUB 导出、离线阅读和多数据源支持。
