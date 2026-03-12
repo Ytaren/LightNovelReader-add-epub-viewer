@@ -288,6 +288,7 @@
     <string name="export_to_lnr_file">Export to .lnr File</string>
     <string name="export_all_to_lnr_file">Export All to .lnr File</string>
     <string name="import_from_file">Import from File</string>
+    <string name="import_epub_file">Import EPUB File</string>
     <string name="add_to_bookshelf">Favorite</string>
     <string name="action_cache">Cache</string>
     <string name="action_show_info">Info</string>

@@ -11,6 +11,7 @@ import dagger.assisted.AssistedInject
 import indi.dmzz_yyhyy.lightnovelreader.data.download.DownloadProgressRepository
 import indi.dmzz_yyhyy.lightnovelreader.data.download.DownloadType
 import indi.dmzz_yyhyy.lightnovelreader.data.download.MutableDownloadItem
+import indi.dmzz_yyhyy.lightnovelreader.data.book.isLocalEpubBookId
 import indi.dmzz_yyhyy.lightnovelreader.data.local.LocalBookDataSource
 import indi.dmzz_yyhyy.lightnovelreader.data.web.WebBookDataSourceProvider
 
@@ -28,6 +29,10 @@ class CacheBookWork @AssistedInject constructor(
         if (bookId.isBlank()) return Result.failure()
         val downloadItem = MutableDownloadItem(DownloadType.CACHE, bookId)
         downloadProgressRepository.addExportItem(downloadItem)
+        if (bookId.isLocalEpubBookId()) {
+            downloadItem.progress = 1f
+            return Result.success()
+        }
         var count = 0
         val bookVolumes = webBookDataSourceProvider.default.getBookVolumes(bookId)
         val total = bookVolumes.volumes.sumOf { it.chapters.size } + 1

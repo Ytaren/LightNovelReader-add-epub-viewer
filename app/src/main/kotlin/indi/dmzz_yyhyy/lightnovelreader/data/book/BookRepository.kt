@@ -56,6 +56,7 @@ class BookRepository @Inject constructor(
             bookInformation.id = id
             coroutineScope.launch(Dispatchers.IO) {
                 localBookDataSource.getBookInformation(id)?.let(bookInformation::update)
+                if (id.isLocalEpubBookId()) return@launch
                 priority.get().getBookInformation(id).let { webInfo ->
                     if (!webInfo.isEmpty()) {
                         localBookDataSource.updateBookInformation(webInfo)
@@ -74,6 +75,7 @@ class BookRepository @Inject constructor(
     ): Flow<BookInformation> = flow {
         val local = localBookDataSource.getBookInformation(id) ?: BookInformation.empty(id)
         emit(local)
+        if (id.isLocalEpubBookId()) return@flow
         val remote = priority.get().getBookInformation(id)
         if (remote.isEmpty()) return@flow
         localBookDataSource.updateBookInformation(remote)
@@ -95,6 +97,7 @@ class BookRepository @Inject constructor(
     ): Flow<BookVolumes> = flow {
         val local = localBookDataSource.getBookVolumes(id) ?: BookVolumes.empty(id)
         emit(local)
+        if (id.isLocalEpubBookId()) return@flow
         val remote = priority.get().getBookVolumes(id)
         if (remote.isEmpty()) return@flow
         localBookDataSource.updateBookVolumes(remote)
@@ -120,6 +123,7 @@ class BookRepository @Inject constructor(
                                 .content
                         })
                 }
+                if (bookId.isLocalEpubBookId()) return@launch
                 priority.get().getChapterContent(chapterId, bookId).let {
                     if (it.isEmpty()) return@launch
                     localBookDataSource.updateChapterContent(it)
@@ -141,6 +145,10 @@ class BookRepository @Inject constructor(
     ): ChapterContent =
         withContext(Dispatchers.IO) {
             textProcessingRepository.coroutineProcessChapterContent(bookId) {
+                if (bookId.isLocalEpubBookId()) {
+                    return@coroutineProcessChapterContent localBookDataSource.getChapterContent(chapterId)
+                        ?: MutableChapterContent.empty().apply { id = chapterId }
+                }
                 val webChapterContent = priority.get().getChapterContent(chapterId, bookId)
                 if (!webChapterContent.isEmpty()) {
                     localBookDataSource.updateChapterContent(webChapterContent)
@@ -158,6 +166,7 @@ class BookRepository @Inject constructor(
         val localChapter = localBookDataSource.getChapterContent(chapterId) ?: MutableChapterContent.empty()
                 .apply { id = chapterId }
         emit(localChapter)
+        if (bookId.isLocalEpubBookId()) return@flow
         val remoteChapter = priority.get().getChapterContent(
             chapterId = chapterId,
             bookId = bookId
@@ -225,3 +234,4 @@ class BookRepository @Inject constructor(
     override fun progressBookTagClick(tag: String, navController: NavController) =
         webBookDataSourceProvider.default.progressBookTagClick(tag, navController)
 }
+

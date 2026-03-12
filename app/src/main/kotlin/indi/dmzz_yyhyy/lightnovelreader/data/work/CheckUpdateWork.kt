@@ -18,6 +18,7 @@ import dagger.assisted.AssistedInject
 import indi.dmzz_yyhyy.lightnovelreader.LightNovelReaderApplication
 import indi.dmzz_yyhyy.lightnovelreader.R
 import indi.dmzz_yyhyy.lightnovelreader.data.bookshelf.BookshelfRepository
+import indi.dmzz_yyhyy.lightnovelreader.data.book.isLocalEpubBookId
 import indi.dmzz_yyhyy.lightnovelreader.data.web.WebBookDataSourceProvider
 import io.nightfish.lightnovelreader.api.book.BookInformation
 import kotlinx.coroutines.delay
@@ -46,6 +47,7 @@ class CheckUpdateWork @AssistedInject constructor(
                 delay(5000)
             }
             if (!needRemindBookIdSet.contains(bookshelfBookMetadata.id)) return@forEach
+            if (bookshelfBookMetadata.id.isLocalEpubBookId()) return@forEach
             Log.d("CheckUpdateWork", "Updating book id=${bookshelfBookMetadata.id}")
             val bookInformation = webBookDataSourceProvider.lowPriority.getBookInformation(bookshelfBookMetadata.id)
             val webBookLastUpdate = bookInformation.lastUpdated

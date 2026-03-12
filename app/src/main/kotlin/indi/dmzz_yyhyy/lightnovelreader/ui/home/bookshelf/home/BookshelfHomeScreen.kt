@@ -129,6 +129,7 @@ fun BookshelfHomeScreen(
     saveAllBookshelfJsonData: (Uri) -> Unit,
     saveBookshelfJsonData: (Uri) -> Unit,
     importBookshelf: (Uri) -> Unit,
+    importEpub: (Uri) -> Unit,
     clearToast: () -> Unit,
     @Suppress("unused") sharedTransitionScope: SharedTransitionScope,
     getBookInfoFlow: (String) -> StateFlow<BookInformation>,
@@ -144,6 +145,7 @@ fun BookshelfHomeScreen(
     val saveAllBookshelfLauncher = launcher(saveAllBookshelfJsonData)
     val saveThisBookshelfLauncher = launcher(saveBookshelfJsonData)
     val importBookshelfLauncher = launcher(importBookshelf)
+    val importEpubLauncher = launcher(importEpub)
 
     val onLongPress: (String) -> Unit = { bookId ->
         if (!uiState.selectMode) {
@@ -234,7 +236,8 @@ fun BookshelfHomeScreen(
                     saveAllBookshelfLauncher
                 )
             },
-            onClickImportBookshelf = { selectBookshelfDataFile(importBookshelfLauncher) }
+            onClickImportBookshelf = { selectBookshelfDataFile(importBookshelfLauncher) },
+            onClickImportEpub = { selectEpubFile(importEpubLauncher) }
         )
         Column(
             modifier = Modifier
@@ -543,7 +546,8 @@ fun TopBar(
     onClickShareBookshelf: () -> Unit,
     onClickSaveThisBookshelf: () -> Unit,
     onClickSaveAllBookshelf: () -> Unit,
-    onClickImportBookshelf: () -> Unit
+    onClickImportBookshelf: () -> Unit,
+    onClickImportEpub: () -> Unit
 ) {
     val localDensity = LocalDensity.current
     var mainMenuExpended by remember { mutableStateOf(false) }
@@ -671,6 +675,17 @@ fun TopBar(
                         mainMenuExpended = false
                     }
                 )
+                DropdownMenuItem(
+                    text = { Text(
+                        text = stringResource(R.string.import_epub_file),
+                        style = MaterialTheme.typography.bodyLarge
+                    ) },
+                    onClick = {
+                        onClickImportEpub()
+                        exportImportMenuExpended = false
+                        mainMenuExpended = false
+                    }
+                )
             }
         }
     }
@@ -780,3 +795,19 @@ fun selectBookshelfDataFile(launcher: ManagedActivityResultLauncher<Intent, Acti
     }
     launcher.launch(Intent.createChooser(intent, "选择数据文件"))
 }
+
+
+@Suppress("DuplicatedCode")
+fun selectEpubFile(launcher: ManagedActivityResultLauncher<Intent, ActivityResult>) {
+    val initUri = DocumentsContract.buildDocumentUri("com.android.externalstorage.documents", "primary:Documents")
+    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+        addCategory(Intent.CATEGORY_OPENABLE)
+        type = "*/*"
+        putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("application/epub+zip", "application/octet-stream"))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+            putExtra(DocumentsContract.EXTRA_INITIAL_URI, initUri)
+    }
+    launcher.launch(Intent.createChooser(intent, "Select EPUB"))
+}
+
+

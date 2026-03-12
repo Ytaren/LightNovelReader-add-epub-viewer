@@ -16,6 +16,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import indi.dmzz_yyhyy.lightnovelreader.R
 import indi.dmzz_yyhyy.lightnovelreader.data.content.ContentComponentRepository
+import indi.dmzz_yyhyy.lightnovelreader.data.book.isLocalEpubBookId
 import indi.dmzz_yyhyy.lightnovelreader.data.download.DownloadProgressRepository
 import indi.dmzz_yyhyy.lightnovelreader.data.download.DownloadType
 import indi.dmzz_yyhyy.lightnovelreader.data.download.MutableDownloadItem
@@ -132,26 +133,39 @@ class ExportBookToEPUBWork @AssistedInject constructor(
             updateFailureNotification(bookId)
             return@withContext Result.failure()
         }
+        val isLocalEpub = bookId.isLocalEpubBookId()
         val tasks = mutableListOf<ImageDownloader.Task>()
-        var bookInformation = webBookDataSourceProvider.lowPriority.getBookInformation(bookId)
-        if (bookInformation.isEmpty()) {
+        var bookInformation = if (isLocalEpub) {
+            localBookDataSource.getBookInformation(bookId) ?: return@withContext Result.failure().also {
+                downloadItem.progress = -1f
+                updateFailureNotification(bookId)
+            }
+        } else {
+            webBookDataSourceProvider.lowPriority.getBookInformation(bookId)
+        }
+        if (!isLocalEpub && bookInformation.isEmpty()) {
             val localData = localBookDataSource.getBookInformation(bookId)
             if (localData.isNullOrEmpty()) {
                 downloadItem.progress = -1f
                 updateFailureNotification(bookId)
                 return@withContext Result.failure()
-            }
-            else bookInformation = localBookDataSource.getBookInformation(bookId)!!
+            } else bookInformation = localData!!
         }
-        var bookVolumes = webBookDataSourceProvider.lowPriority.getBookVolumes(bookId)
-        if (bookVolumes.isEmpty()) {
+        var bookVolumes = if (isLocalEpub) {
+            localBookDataSource.getBookVolumes(bookId) ?: return@withContext Result.failure().also {
+                downloadItem.progress = -1f
+                updateFailureNotification(bookId)
+            }
+        } else {
+            webBookDataSourceProvider.lowPriority.getBookVolumes(bookId)
+        }
+        if (!isLocalEpub && bookVolumes.isEmpty()) {
             val localData = localBookDataSource.getBookVolumes(bookId)
             if (localData.isNullOrEmpty()) {
                 downloadItem.progress = -1f
                 updateFailureNotification(bookId)
                 return@withContext Result.failure()
-            }
-            else bookVolumes = localData!!
+            } else bookVolumes = localData!!
         }
         val bookContentMap = mutableMapOf<String, ChapterContent>()
         updateProgressNotification(bookId, 0)
@@ -165,15 +179,21 @@ class ExportBookToEPUBWork @AssistedInject constructor(
             updateProgressNotification(bookId, progressForVolume)
             downloadItem.progress = progressForVolume / 100f
             volume.chapters.forEach {
-                var chapterContent = webBookDataSourceProvider.lowPriority.getChapterContent(it.id, bookId)
-                if (chapterContent.isEmpty()) {
+                var chapterContent = if (isLocalEpub) {
+                    localBookDataSource.getChapterContent(it.id) ?: return@withContext Result.failure().also {
+                        downloadItem.progress = -1f
+                        updateFailureNotification(bookId)
+                    }
+                } else {
+                    webBookDataSourceProvider.lowPriority.getChapterContent(it.id, bookId)
+                }
+                if (!isLocalEpub && chapterContent.isEmpty()) {
                     val localData = localBookDataSource.getChapterContent(it.id)
                     if (localData.isNullOrEmpty()) {
                         downloadItem.progress = -1f
                         updateFailureNotification(bookId)
                         return@withContext Result.failure()
-                    }
-                    else chapterContent = localData!!
+                    } else chapterContent = localData!!
                 }
                 bookContentMap[it.id] = chapterContent
             }
@@ -471,3 +491,4 @@ class ExportBookToEPUBWork @AssistedInject constructor(
         return Result.success()
     }
 }
+

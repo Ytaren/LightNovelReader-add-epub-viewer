@@ -57,6 +57,7 @@ fun NavGraphBuilder.bookshelfHomeDestination(sharedTransitionScope: SharedTransi
             saveAllBookshelfJsonData = bookshelfHomeViewModel::saveAllBookshelf,
             saveBookshelfJsonData = bookshelfHomeViewModel::saveThisBookshelf,
             importBookshelf = bookshelfHomeViewModel::importBookshelf,
+            importEpub = bookshelfHomeViewModel::importEpub,
             onClickMarkSelectedBooks = {
                 navController.navigateToAddBookToBookshelfDialog(bookshelfHomeViewModel.uiState.selectedBookIds)
                 bookshelfHomeViewModel.disableSelectMode()

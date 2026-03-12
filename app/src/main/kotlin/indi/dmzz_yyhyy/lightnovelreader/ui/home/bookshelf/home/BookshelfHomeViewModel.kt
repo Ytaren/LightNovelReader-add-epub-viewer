@@ -15,6 +15,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import indi.dmzz_yyhyy.lightnovelreader.data.book.BookRepository
 import indi.dmzz_yyhyy.lightnovelreader.data.bookshelf.BookshelfRepository
 import indi.dmzz_yyhyy.lightnovelreader.data.work.ImportDataWork
+import indi.dmzz_yyhyy.lightnovelreader.data.work.ImportEpubWork
 import indi.dmzz_yyhyy.lightnovelreader.data.work.SaveBookshelfWork
 import io.nightfish.lightnovelreader.api.book.BookInformation
 import io.nightfish.lightnovelreader.api.book.BookVolumes
@@ -267,14 +268,48 @@ class BookshelfHomeViewModel @Inject constructor(
                     WorkInfo.State.ENQUEUED -> return@collect
                     WorkInfo.State.RUNNING -> return@collect
                     WorkInfo.State.SUCCEEDED -> load()
-                    WorkInfo.State.FAILED -> _uiState.toast = "文件损坏或格式错误，请检查后重试。"
+                    WorkInfo.State.FAILED -> _uiState.toast = "Import failed. Please check the file format and try again."
                     WorkInfo.State.BLOCKED -> return@collect
                     WorkInfo.State.CANCELLED -> return@collect
                 }
             }
         }
     }
-
+    fun importEpub(uri: Uri) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val workRequest = OneTimeWorkRequestBuilder<ImportEpubWork>()
+                .setInputData(
+                    workDataOf(
+                        "uri" to uri.toString(),
+                        "bookshelfId" to uiState.selectedBookshelfId
+                    )
+                )
+                .build()
+            workManager.enqueueUniqueWork(
+                "epub_import_${System.currentTimeMillis()}",
+                ExistingWorkPolicy.REPLACE,
+                workRequest
+            )
+            workManager.getWorkInfoByIdFlow(workRequest.id).collect {
+                it ?: return@collect
+                when (it.state) {
+                    WorkInfo.State.ENQUEUED -> return@collect
+                    WorkInfo.State.RUNNING -> return@collect
+                    WorkInfo.State.SUCCEEDED -> {
+                        val title = it.outputData.getString("title")
+                        _uiState.toast = if (!title.isNullOrBlank()) "EPUB imported: $title"
+                        else "EPUB imported successfully"
+                        load()
+                    }
+                    WorkInfo.State.FAILED -> {
+                        _uiState.toast = "Failed to import EPUB. Please check whether the file is valid."
+                    }
+                    WorkInfo.State.BLOCKED -> return@collect
+                    WorkInfo.State.CANCELLED -> return@collect
+                }
+            }
+        }
+    }
     fun clearToast() {
         _uiState.toast = ""
     }
